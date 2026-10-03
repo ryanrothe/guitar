@@ -1,7 +1,7 @@
 {
   "name": "Guitar",
   "short_name": "Guitar",
-  "description": "Fifteen minutes a day. Song first.",
+  "description": "Songs, not chords. One step at a time.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
