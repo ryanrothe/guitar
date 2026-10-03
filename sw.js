@@ -1,7 +1,7 @@
 /* Guitar — service worker, same policy as the Exercise Library's sw.js:
    network-first for HTML/JS/CSS (a deploy never pairs a new page with an old module),
    cache-first for images and the manifest. Bump CACHE on every deploy. */
-const CACHE = 'guitar-v1';
+const CACHE = 'guitar-v2';
 const PRECACHE = [
   './', './index.html', './manifest.webmanifest',
   './shared/app.css', './shared/sync.js', './app.js',

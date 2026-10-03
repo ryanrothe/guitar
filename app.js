@@ -42,7 +42,7 @@
         { title: "Come Thou Fount", artist: "hymn", chords: "G, C, D, Em" }] }
   ];
   const MILESTONES = [
-    { day: 7, q: "Song 1 through at slow tempo?" }, { day: 14, q: "Song 1 at full tempo with the recording?" },
+    { day: 7, q: "Playing along with Song 1 at slow tempo, both chords?" }, { day: 14, q: "Song 1 at full tempo with the recording?" },
     { day: 30, q: "Song 1 played for the family?" }, { day: 45, q: "Song 2 through with the strum pattern?" },
     { day: 90, q: "Three-song setlist recorded?" }];
   const STATUS = [["not-started", "Not started"], ["learning", "Learning"], ["slow", "Slow tempo"], ["full", "Full tempo"], ["recorded", "Recorded"]];
@@ -52,6 +52,32 @@
     { id: "changes", label: "One-minute changes", sub: "Hardest transition in the song. Two rounds. Best count is the score.", min: 4 },
     { id: "loop", label: "Section loop", sub: "Current section with the recording at 0.75x. Move on when it is clean.", min: 7 },
     { id: "play", label: "Play it through", sub: "Start to finish, however it sounds. Then log.", min: 2 }];
+  /* Days 1 to 3 are the ramp. Ryan starts from zero (2026-10-03): no tuning, no chords, no chord boxes.
+     Justin Guitar's Module 0 and the Horse lesson carry the video; these blocks carry the order. */
+  const LINKS = {
+    tune: "https://www.justinguitar.com/guitar-lessons/how-to-tune-a-guitar-for-beginners-b1-101",
+    basics: "https://www.justinguitar.com/modules/before-you-begin-guitar-basics",
+    course: "https://www.justinguitar.com/classes/beginner-guitar-course-grade-one",
+    horse: "https://www.justinguitar.com/songs/america-a-horse-with-no-name-chords-tabs-guitar-lesson-sg-014"
+  };
+  const RAMP = {
+    1: [
+      { id: "r1-tune", label: "Tune it, first time", sub: "Install a tuner app (GuitarTuna is free). Thickest string is the low E, nearest your face. Pluck one string, turn its peg until the app says it is on. Six strings: E A D G B e.", min: 6, link: LINKS.tune },
+      { id: "r1-hold", label: "Hold it", sub: "Sit. Waist of the guitar on your right thigh, neck tilted slightly up, left thumb flat behind the neck, wrist relaxed.", min: 2, link: LINKS.basics },
+      { id: "r1-note", label: "One clean note", sub: "Index fingertip on the low E string, just behind the 3rd metal fret wire. Press, pluck. Buzz means move closer to the wire or press with the very tip. Do it on every string.", min: 5 },
+      { id: "r1-strum", label: "Strum open strings", sub: "All six strings, down strokes only, counting a slow 1 2 3 4. Pick or thumb. That is a bar.", min: 2 }],
+    2: [
+      { id: "r2-tune", label: "Tune", sub: "Every session starts here from now on. It gets fast.", min: 2, link: LINKS.tune },
+      { id: "r2-em", label: "Learn Em", sub: "Open the Horse lesson and read the Em chord box: the grid is the neck, dots are fingertips. Two fingers, one fret. Place, strum, pluck each string one at a time to find the muted one, fix it, lift, place again. Ten times.", min: 7, link: LINKS.horse },
+      { id: "r2-strum", label: "Strum Em in time", sub: "Four slow down strokes per bar, counting 1 2 3 4, four bars in a row.", min: 4 },
+      { id: "r2-play", label: "Play with the record", sub: "Start the song at 0.75x on YouTube and strum Em along with it, ignoring the second chord. You are playing a song.", min: 2 }],
+    3: [
+      { id: "r3-tune", label: "Tune", sub: "One minute now.", min: 1, link: LINKS.tune },
+      { id: "r3-d6", label: "Learn D6/9", sub: "The second chord in the lesson (Justin calls it D6). Same drill: place, pluck each string, fix, lift, repeat. Ten times.", min: 6, link: LINKS.horse },
+      { id: "r3-switch", label: "Switch Em to D6/9", sub: "No strumming. Em, then D6/9, then back. As slow as it takes to land clean. Ten switches. Notice which finger can stay close to the neck.", min: 5 },
+      { id: "r3-count", label: "First one-minute count", sub: "Run one 60-second round below and log whatever the number is. Two to six is normal on day 3. That number is the scoreboard from here on.", min: 3 }]
+  };
+  const rampDay = (n) => (n >= 1 && n <= 3 ? n : n < 1 ? 1 : 0);
 
   /* ------------------------------------------------------------------ state */
   const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -129,15 +155,18 @@
         <div class="hint" style="margin-top:6px">${logged.min} min · ${esc(logged.section)}${logged.recording ? " · recorded" : ""}${logged.floor ? " · floor session" : ""}${logged.note ? ` · ${esc(logged.note)}` : ""}</div>
         <div class="actions2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px"><button class="btn" data-act="edit" data-id="${logged.id}">Edit</button><button class="btn btn-ghost" data-act="go" data-view="progress">Progress ›</button></div></section>` + weekStrip(t);
     }
-    const blocks = BLOCKS.map((b) => {
-      if (b.id === "changes" && sun) b = { id: "changes", label: "Record 30 to 60 seconds", sub: "Sunday swaps the drill for the recording. Phone propped up, whole song, keep every take.", min: 4 };
+    const rd = rampDay(n);
+    const todayBlocks = rd ? RAMP[rd] : BLOCKS;
+    const blocks = todayBlocks.map((b) => {
+      if (!rd && b.id === "changes" && sun) b = { id: "changes", label: "Record 30 to 60 seconds", sub: "Sunday swaps the drill for the recording. Phone propped up, whole song, keep every take.", min: 4 };
       const done = !!r.done[b.id];
       const live = r.timer && r.timer.block === b.id;
       const left = live ? Math.max(0, Math.round((r.timer.endsAt - Date.now()) / 1000)) : b.min * 60;
       return `<div class="block${done ? " done" : ""}"><button class="chk" data-act="toggle" data-block="${b.id}" aria-label="Mark ${esc(b.label)} done">${done ? I.check : ""}</button>
-        <div class="t"><b>${esc(b.label)}</b><small>${esc(b.sub)}</small></div>
+        <div class="t"><b>${esc(b.label)}</b><small>${esc(b.sub)}${b.link ? ` <a class="olive" href="${esc(b.link)}" target="_blank" rel="noopener" style="font-weight:700">Watch ›</a>` : ""}</small></div>
         ${done ? "" : `<button class="clock${live ? " live" : ""}" data-act="timer" data-block="${b.id}" data-min="${b.min}" aria-label="${live ? "Stop" : "Start"} ${b.min} minute timer">${clock(left)}</button>`}</div>`;
     }).join("");
+    const rampHead = rd ? `<div class="row-head"><span class="eyebrow olive">Starting from zero · ramp day ${rd} of 3</span><span class="hint">${rd === 3 ? "tomorrow: the full session" : "no counting yet"}</span></div>` : "";
     const tapping = r.tapping, tapLeft = tapping ? Math.max(0, Math.round((tapping.endsAt - Date.now()) / 1000)) : 60;
     const best = r.rounds.length ? Math.max.apply(null, r.rounds) : null;
     const changes = `<section class="card changes"><div class="top"><b>One-minute changes</b><small>${esc(song.chords)}</small></div>
@@ -146,7 +175,20 @@
       <div class="rounds">${r.rounds.map((c, i) => `<span>Round ${i + 1}: <b>${c}</b></span>`).join("")}${r.rounds.length ? `<button class="textbtn" data-act="clear-rounds" style="margin-left:auto">Reset</button>` : ""}</div></section>`;
     const actions = `<section class="card pad" style="display:flex;flex-direction:column;gap:10px"><button class="btn btn-olive btn-block" data-act="log">Log today's session</button>
       <button class="btn btn-ghost" data-act="floor">Floor session: played it through once (5 min)</button></section>`;
-    return head + songCard + msCard + `<section class="card list">${blocks}</section>` + changes + actions + weekStrip(t);
+    const showChanges = !rd || rd === 3;
+    return head + songCard + msCard + rampHead + `<section class="card list">${blocks}</section>` + (showChanges ? changes : "") + actions + weekStrip(t) + basicsCard(n);
+  }
+  function basicsCard(n) {
+    return `<details class="card pad"${n <= 3 ? " open" : ""}><summary class="eyebrow" style="cursor:pointer;list-style:none">Basics · tap to ${n <= 3 ? "close" : "open"}</summary>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;font-size:14px;line-height:1.5">
+        <div><b>Strings.</b> Thickest to thinnest: E A D G B e. The thick low E is nearest your face. "Eddie Ate Dynamite, Good Bye Eddie."</div>
+        <div><b>Frets.</b> The metal wires. "3rd fret" means the space just behind the 3rd wire counting from the headstock. Press right behind the wire, not in the middle of the space.</div>
+        <div><b>Chord box.</b> Six vertical lines are the strings (low E on the left), horizontal lines are frets, dots are fingertips, a number on a dot is which finger (1 index, 2 middle, 3 ring, 4 pinky), O above a string means play it open, X means skip it.</div>
+        <div><b>Buzz or mute.</b> Fingertip not pad, closer to the fret wire, arch the finger so it does not touch the string below, thumb behind the neck. Pluck each string one at a time to find the culprit.</div>
+        <div><b>Sore fingertips.</b> Normal through day 14. Stop at 10 minutes if they are done. Calluses end it.</div>
+        <div><b>Tuning.</b> Tuner app, one string at a time, turn the peg slowly. Sharp means too high, flat means too low. <a class="olive" href="${LINKS.tune}" target="_blank" rel="noopener" style="font-weight:700">Justin's tuning lesson ›</a></div>
+        <div><a class="olive" href="${LINKS.basics}" target="_blank" rel="noopener" style="font-weight:700">Module 0: Before You Begin ›</a> · <a class="olive" href="${LINKS.course}" target="_blank" rel="noopener" style="font-weight:700">Beginner course ›</a></div>
+      </div></details>`;
   }
   function weekStrip(t) {
     const mon = monday(t), done = weekSessions(mon), rec = new Set(S.sessions.filter((s) => s.recording).map((s) => s.date));
@@ -223,7 +265,7 @@
     const s = existing || { date: t, min: 15, changes: best, section: song.section || "Verse", recording: isSunday(t), note: "" };
     openSheet(`<div class="sheet-head"><h2>${existing ? "Edit session" : "Log session"}</h2><button class="x-btn" data-act="close" aria-label="Close">×</button></div>
       <div class="grid2"><div><label class="lab" for="f-date">Date</label><input class="field" id="f-date" type="date" value="${s.date}"></div><div><label class="lab" for="f-min">Minutes</label><input class="field" id="f-min" type="number" inputmode="numeric" min="1" max="120" value="${s.min}"></div></div>
-      <div class="grid2"><div><label class="lab" for="f-changes">Clean changes in 60 s</label><input class="field" id="f-changes" type="number" inputmode="numeric" min="0" max="200" value="${s.changes == null ? "" : s.changes}" placeholder="best round"></div>
+      <div class="grid2"><div><label class="lab" for="f-changes">Clean changes in 60 s</label><input class="field" id="f-changes" type="number" inputmode="numeric" min="0" max="200" value="${s.changes == null ? "" : s.changes}" placeholder="${rampDay(dayN(t)) && rampDay(dayN(t)) < 3 ? "from day 3" : "best round"}"></div>
         <div><label class="lab" for="f-section">Section</label><select class="field" id="f-section">${SECTIONS.map((x) => `<option${s.section === x ? " selected" : ""}>${x}</option>`).join("")}</select></div></div>
       <div><label class="lab">Recording made</label><div class="seg olive" id="f-rec"><button data-rec="1"${s.recording ? ' class="on"' : ""}>Yes</button><button data-rec="0"${s.recording ? "" : ' class="on"'}>No</button></div></div>
       <div><label class="lab" for="f-note">Note</label><input class="field" id="f-note" value="${esc(s.note || "")}" placeholder="buzz · slow change · sore · bored · breakthrough"></div>
